@@ -473,21 +473,22 @@ function reveal(){
     const anchor=b.anchor;if(!anchor)return;
     let dx=anchor.x-cx,dy=anchor.y-cy,d=Math.hypot(dx,dy)||1;
     const ux=dx/d,uy=dy/d,px=-uy*b.side,py=ux*b.side;
-    const nearHalf=r,farHalf=r*.36;
-    // 그라데이션의 알파=0 기준점을 원의 중심이 아니라 "원의 경계"에 둠 → 원 얼굴 전체(중심~경계)는 항상 정확히 alpha 0으로 고정(클램프)되어
-    // 원이 움직여도 원 밑에서 밝기가 미세하게 변하며 반짝이는 현상이 생기지 않음(경계 밖에서만 서서히 밝아짐)
-    const gx=cx+ux*r,gy=cy+uy*r;
+    // 피그마 원본(node 75:365) 실측: 원 쪽은 원 반지름의 .42배로 좁고, 멀어질수록 원 반지름의 1.06배로 넓어짐.
+    // 길이는 화면 밖까지 무한히 뻗는 게 아니라 원 반지름의 3.6배 정도의 유한한 길이.
+    // 색도 원본처럼 원과 맞닿는 쪽이 진하고 불투명, 끝으로 갈수록 옅어지며 알파 0으로 사라짐(빛줄기 자체 그라데이션만으로 자연스럽게 원과 연결됨)
+    const len=r*3.6,farX=cx+ux*len,farY=cy+uy*len;
+    const nearHalf=r*1.06,farHalf=r*.42; // 원 쪽이 넓고 멀어질수록 좁아지도록(반대 방향으로 수정)
     ctx.save();
-    ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha*.9;
-    const g=ctx.createLinearGradient(gx,gy,anchor.x,anchor.y);
-    const near=hex2rgb(b.c[0]),far=hex2rgb(b.c[2]);
+    ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;ctx.filter=`blur(${r*.05}px)`;
+    const g=ctx.createLinearGradient(cx,cy,farX,farY);
+    const near=hex2rgb(b.c[1]),far=hex2rgb(b.c[0]);
     g.addColorStop(0,`rgba(${near.r},${near.g},${near.b},0)`);
-    g.addColorStop(1,`rgba(${far.r},${far.g},${far.b},.88)`);
+    g.addColorStop(1,`rgba(${far.r},${far.g},${far.b},.9)`);
     ctx.fillStyle=g;
     ctx.beginPath();
     ctx.moveTo(cx+px*nearHalf,cy+py*nearHalf);
-    ctx.lineTo(anchor.x+px*farHalf,anchor.y+py*farHalf);
-    ctx.lineTo(anchor.x-px*farHalf,anchor.y-py*farHalf);
+    ctx.lineTo(farX+px*farHalf,farY+py*farHalf);
+    ctx.lineTo(farX-px*farHalf,farY-py*farHalf);
     ctx.lineTo(cx-px*nearHalf,cy-py*nearHalf);
     ctx.closePath();ctx.fill();
     ctx.restore();
@@ -552,7 +553,8 @@ function reveal(){
         }
       }
       if(alpha>.008&&r>.4){
-        ctx.globalCompositeOperation='lighter';ctx.filter='blur(1px)';ctx.globalAlpha=alpha;
+        // 피그마 원본 원(Ellipse 23) 실측: 가장자리 블러가 반지름의 약 10.6%(27.05/255.477)
+        ctx.globalCompositeOperation='lighter';ctx.filter=`blur(${r*.106}px)`;ctx.globalAlpha=alpha;
         const g=ctx.createRadialGradient(cx+(b.hx||0)*r,cy+(b.hy||0)*r,0,cx,cy,r);
         g.addColorStop(0,cols[0]);g.addColorStop(.38,cols[1]);g.addColorStop(.68,cols[2]);g.addColorStop(.85,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
