@@ -83,51 +83,58 @@
   .stage-txt{position:absolute;left:0;right:0;top:50%;text-align:center;font-size:clamp(14px,1.6vw,20px);letter-spacing:.4em;transform:translateY(-50%);mix-blend-mode:difference;color:#fff;pointer-events:none}
 
   /* ---------- 3. CROSSWORD ---------- */
-  .cw{position:relative;background:#fff;color:#111;padding:6vh 0 14vh;--c:min(5.6vw,64px)}
-  .cw-inner{position:relative;width:calc(var(--c)*14);margin:0 auto}
-  .grid{position:relative;width:calc(var(--c)*14);height:calc(var(--c)*10);z-index:2}
-  .cell{position:absolute;width:var(--c);height:var(--c);background:rgba(255,255,255,.55);backdrop-filter:blur(0px);border:2px solid #111;margin:-1px;
-    display:flex;align-items:center;justify-content:center;font-size:calc(var(--c)*.46);font-weight:600;cursor:pointer;
+  /* 피그마 원본(node 75:308)이 1920x1080 캔버스 그대로 그려져 있어서, 그 실측 px 좌표를 그대로 쓰는
+     1920x1080 "stage"를 만들고 화면 크기에 맞춰 transform:scale()로 통째로 축소/확대함.
+     이러면 글자 크기·칸 크기·여백 비율이 전부 원본과 똑같이 유지된 채 항상 100vh 안에 꽉 들어참. */
+  .cw{position:relative;background:#f5f5f5;color:#111;height:100vh;overflow:hidden}
+  /* left/top는 JS(fit())가 매번 픽셀로 직접 계산해서 넣음 — %+transform 조합은 배율에 따라
+     어긋나기 쉬워서, transform-origin을 0 0으로 고정하고 순수 scale()만 적용 */
+  .cw-stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:0 0;
+    transform:scale(var(--s,1));font-family:"Pretendard","Apple SD Gothic Neo",sans-serif}
+  .cw-auto{position:absolute;z-index:4;left:1514px;top:75px;background:#cfff3d;color:#111;border:0;border-radius:12px;
+    padding:12px 32px;font-size:21px;font-weight:600;letter-spacing:-.03em;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .cw-auto:hover{background:#bdf01f}
+  .cw-inner{position:absolute;left:309px;top:161px;--c:60px}
+  .grid{position:relative;z-index:2}
+  .cell{position:absolute;width:var(--c);height:var(--c);background:rgba(255,255,255,.5);border:1px solid #111;margin:-.5px;
+    display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;cursor:pointer;
     opacity:0;transform:scale(.6);transition:opacity .5s,transform .5s,background .25s,color .25s}
   .cell.in{opacity:1;transform:none}
-  .cell sup{position:absolute;left:3px;top:1px;font-size:calc(var(--c)*.2);font-weight:400}
+  .cell sup{position:absolute;left:4px;top:2px;font-size:12px;font-weight:400}
   .cell.on{background:#ffe680}
   .cell.flash{background:#ffd400}
   .cell.over{background:#fff3b0;outline:2px dashed #111}
   .cell .ch{pointer-events:none}
-  .tray{position:absolute;z-index:3;left:calc(var(--c)*7.2);top:calc(var(--c)*11.4);width:calc(var(--c)*6.8)}
-  .tray h4{font-size:11px;letter-spacing:.3em;color:#999;font-weight:500;padding-bottom:10px;border-bottom:1px solid #ddd;margin-bottom:10px}
+  .tray{position:absolute;left:0;top:calc(var(--c)*9.5);width:780px}
+  .tray h4{font-size:11px;letter-spacing:.25em;color:#999;font-weight:500;padding-bottom:8px;border-bottom:1px solid #ddd;margin-bottom:10px}
   .tray .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{width:calc(var(--c)*.62);height:calc(var(--c)*.62);display:flex;align-items:center;justify-content:center;border:2px solid #111;background:#fff;font-weight:600;font-size:calc(var(--c)*.3);cursor:grab;user-select:none}
+  .chip{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid #111;background:#fff;font-weight:600;font-size:16px;cursor:grab;user-select:none}
   .chip:active{cursor:grabbing;background:#ffe680}
 
-  /* gray blocks behind images */
-  .gray{position:absolute;z-index:1;cursor:pointer}
-  .gray svg{position:absolute;inset:0;width:100%;height:100%;fill:#ededed;transition:fill .5s,transform .4s}
-  .gray.seen svg{fill:#a8a8a8}
-  .gray.cur svg{fill:#d0d0d0;transform:scale(1.06)}
-  .gray.seen.cur svg{fill:#969696}
-  .gray img{width:100%;height:100%;object-fit:cover;display:block}
-    .g5{left:calc(var(--c)*9.4);top:calc(var(--c)*6.3);width:calc(var(--c)*3.2);height:calc(var(--c)*3.2)}
-  .g6{left:calc(var(--c)*6);top:calc(var(--c)*1.2);width:calc(var(--c)*3);height:calc(var(--c)*3)}
-  .g1{left:calc(var(--c)*1.6);top:calc(var(--c)*3.9);width:calc(var(--c)*3.2);height:calc(var(--c)*3.2)}
-  .g2{left:calc(var(--c)*1.7);top:calc(var(--c)*6.4);width:calc(var(--c)*3.2);height:calc(var(--c)*3.2)}
-  .g3{left:calc(var(--c)*4.2);top:calc(var(--c)*7.6);width:calc(var(--c)*2.4);height:calc(var(--c)*2.4)}
-  .g4{left:calc(var(--c)*0.9);top:calc(var(--c)*1.2);width:calc(var(--c)*3);height:calc(var(--c)*3)}
+  /* 배경 장식(피그마 Union 애셋을 그대로 다운로드해 원본 좌표/크기에 배치) */
+  .gray{position:absolute;z-index:1;cursor:pointer;opacity:.9;transition:opacity .4s,filter .4s;filter:grayscale(1)}
+  .gray img{display:block;width:100%;height:100%}
+  .gray.cur{opacity:1;filter:grayscale(.4)}
+  .g1{left:963px;top:272px;width:193.6px;height:321.08px}
+  .g2{left:469px;top:505px;width:272px;height:452px}
+  .g3{left:1267px;top:632px;width:135px;height:380px}
+  .g4{left:1008px;top:705px;width:250px;height:304px}
+  .g5{left:1750.56px;top:339px;width:354.56px;height:308.02px;transform:rotate(180deg) scaleY(-1)}
+  .g6{left:228px;top:62px;width:340px;height:412px}
 
-  /* 소개 패널 (가로: 우상단 / 세로: 좌하단) */
-  .cw-inner{height:calc(var(--c)*16.2)}
-  .pnl{position:absolute;z-index:3}
-  .pa{left:calc(var(--c)*9.3);top:calc(var(--c)*.1);width:calc(var(--c)*4.9)}
-  .pd{left:0;top:calc(var(--c)*11);width:calc(var(--c)*6.6)}
-  .pnl h4{font-size:11px;letter-spacing:.3em;color:#999;font-weight:500;padding-bottom:10px;border-bottom:1px solid #ddd;margin-bottom:6px}
-  .it{padding:12px 0;border-bottom:1px solid #eee;cursor:pointer;color:#8a8a8a;transition:color .3s}
-  .it .r1{display:flex;align-items:baseline;gap:10px}
-  .it .n{font-size:11px;letter-spacing:.2em}
-  .it .t{font-size:clamp(15px,1.7vw,24px);font-weight:600}
-  .it .g{margin-left:auto;font-size:10px;letter-spacing:.12em}
-  .it .d{margin-top:6px;font-size:clamp(11px,1vw,13.5px);line-height:1.7;color:inherit;transition:color .3s}
+  /* 절 패널 (가로 / 세로) — 피그마 실측 위치/폭 그대로 */
+  .pnl{position:absolute}
+  .pa{left:1253px;top:200px;width:505px}
+  .pd{left:115px;top:773px;width:506px}
+  .pnl h4{font-size:32px;font-weight:400;letter-spacing:-.04em;color:#111;margin-bottom:30px}
+  .it{padding:7px 0;cursor:pointer;color:#8a8a8a;transition:color .3s}
+  .it .r1{display:flex;align-items:baseline;gap:4px}
+  .it .n{font-size:12px;letter-spacing:-.04em;flex:none}
+  .it .t{font-size:24px;letter-spacing:-.04em;font-weight:400}
+  .it .g{display:none}
+  .it .d{display:none;margin-top:6px;font-size:13px;line-height:1.6;color:inherit}
   .it.act{color:#111}
+  .it.act .d{display:block}
   .fade{animation:fd .4s}
   @keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .end{position:relative;min-height:620px;background:#fff;color:#111;overflow:hidden;font-family:"Helvetica Neue",Arial,"Malgun Gothic",sans-serif;cursor:grab}
@@ -199,17 +206,19 @@
 
 <!-- 3 CROSSWORD -->
 <section class="cw" id="cw">
-  <div class="cw-inner">
-    <div class="gray g1" data-n="01"></div>
-    <div class="gray g2" data-n="02"></div>
-    <div class="gray g3" data-n="03"></div>
-    <div class="gray g4" data-n="04"></div>
-    <div class="gray g5" data-n="05"></div>
-    <div class="gray g6" data-n="06"></div>
-    <div class="grid" id="grid"></div>
+  <div class="cw-stage" id="cwStage">
+    <div class="gray g6" data-n="04"><img src="assets/cw/union6.svg" alt=""></div>
+    <div class="gray g1" data-n="01"><img src="assets/cw/union1.svg" alt=""></div>
+    <div class="gray g2" data-n="02"><img src="assets/cw/union2.svg" alt=""></div>
+    <div class="gray g4" data-n="05"><img src="assets/cw/union4.svg" alt=""></div>
+    <div class="gray g3" data-n="03"><img src="assets/cw/union3.svg" alt=""></div>
+    <div class="gray g5" data-n="06"><img src="assets/cw/union5.svg" alt=""></div>
+    <button class="cw-auto" id="cwAuto">십자말풀이 자동으로 풀기</button>
+    <div class="cw-inner"><div class="grid" id="grid"></div>
+      <div class="tray"><h4>DRAG &amp; DROP · 글자를 칸에 끌어다 놓으세요</h4><div class="chips" id="chips"></div></div>
+    </div>
     <div class="pnl pa" id="pa"></div>
     <div class="pnl pd" id="pd"></div>
-    <div class="tray"><h4>DRAG &amp; DROP · 글자를 칸에 끌어다 놓으세요</h4><div class="chips" id="chips"></div></div>
   </div>
 </section>
 <!-- 4 CLOSING (bachoo style) -->
@@ -222,6 +231,19 @@
 <footer>© 2026 JO DABIN</footer>
 
 <script>
+/* ===== 십자말풀이 스테이지 스케일 =====
+   피그마 원본이 1920x1080 캔버스라서, 그 비율(16:9) 그대로 축소/확대해 항상 100vh 안에 꽉 차게 맞춤 */
+(()=>{
+  const stage=document.getElementById('cwStage'),cwSec=document.getElementById('cw');
+  function fit(){
+    const w=cwSec.clientWidth,h=cwSec.clientHeight;
+    const s=Math.min(w/1920,h/1080);
+    stage.style.transform=`scale(${s})`;
+    stage.style.left=((w-1920*s)/2)+'px';
+    stage.style.top=((h-1080*s)/2)+'px';
+  }
+  fit();addEventListener('resize',fit);
+})();
 /* ===== 프로젝트 데이터 (내용/이미지는 여기서 수정) ===== */
 const projects=[
   {t:"국순당 리디자인",  tag:"Brand · Redesign",   d:"국순당의 브랜드 아이덴티티와 패키지를 새롭게 해석한 리디자인 프로젝트.", img:"", word:"국순당리디자인", x:2,y:5,dir:"h"},
@@ -236,12 +258,14 @@ const grayMap=[0,1,2,3,4,5]; // 회색 블록 → 표시할 프로젝트 이미�
 /* ===== 십자말풀이 생성 ===== */
 const grid=document.getElementById('grid');
 const cells={};
+let maxX=0,maxY=0;
 projects.forEach((p,i)=>{
   [...p.word].forEach((ch,k)=>{
     const x=p.x+(p.dir==='h'?k:0), y=p.y+(p.dir==='v'?k:0), key=x+','+y;
+    maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
     let el=cells[key];
     if(!el){
-      el=document.createElement('div');el.className='cell';el.dataset.p='';
+      el=document.createElement('div');el.className='cell';el.dataset.p='';el.dataset.ch=ch;
       el.style.left=`calc(var(--c)*${x})`;el.style.top=`calc(var(--c)*${y})`;
       grid.appendChild(el);cells[key]=el;
     }
@@ -249,6 +273,7 @@ projects.forEach((p,i)=>{
     if(k===0){const s=document.createElement('sup');s.textContent=i+1;el.appendChild(s);}
   });
 });
+grid.style.width=`calc(var(--c)*${maxX+1})`;grid.style.height=`calc(var(--c)*${maxY+1})`;
 const all=[...grid.children];
 all.forEach(el=>{
   const ids=el.dataset.p.split(',').filter(Boolean).map(Number);
@@ -264,14 +289,20 @@ function show(i){
 /* 드래그 앤 드롭: 칸에 글자 넣기 */
 const KEY='cw-letters';let saved={};
 try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+const putFns={};
 Object.keys(cells).forEach(k=>{
   const el=cells[k],span=document.createElement('span');span.className='ch';el.appendChild(span);
   if(saved[k])span.textContent=saved[k];
   const put=t=>{const c=[...(t||'').trim()][0]||'';span.textContent=c;saved[k]=c;try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(e){}};
+  putFns[k]=put;
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
   el.addEventListener('dragleave',()=>el.classList.remove('over'));
   el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');put(e.dataTransfer.getData('text/plain'))});
   el.addEventListener('dblclick',()=>put(''));
+});
+/* 십자말풀이 자동으로 풀기: 모든 칸에 정답 글자를 채움 */
+document.getElementById('cwAuto').addEventListener('click',()=>{
+  Object.keys(cells).forEach(k=>putFns[k](cells[k].dataset.ch));
 });
 const chipBox=document.getElementById('chips');
 [...new Set(projects.map(p=>p.word).join('').split(''))].forEach(ch=>{
@@ -279,7 +310,7 @@ const chipBox=document.getElementById('chips');
   c.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',ch);e.dataTransfer.effectAllowed='copy'});
   chipBox.appendChild(c);
 });
-document.querySelector('.cw-inner').addEventListener('mouseleave',()=>{
+document.querySelector('.cw-stage').addEventListener('mouseleave',()=>{
   all.forEach(c=>c.classList.remove('on'));
   document.querySelectorAll('.gray').forEach(g=>g.classList.remove('cur'));
   document.querySelectorAll('.it').forEach(e=>e.classList.remove('act'));
@@ -289,12 +320,10 @@ function buildPanel(el,label,idx){
   el.innerHTML=`<h4>${label}</h4>`+idx.map(i=>{const p=projects[i];return `<div class="it" data-i="${i}"><div class="r1"><span class="n">0${i+1}</span><span class="t">${p.t}</span><span class="g">${p.tag}</span></div><div class="d">${p.d}</div></div>`}).join('');
   el.querySelectorAll('.it').forEach(e=>{e.addEventListener('mouseenter',()=>show(+e.dataset.i));e.addEventListener('click',()=>show(+e.dataset.i));});
 }
-buildPanel(document.getElementById('pa'),'ACROSS · 가로',projects.map((p,i)=>p.dir==='h'?i:-1).filter(i=>i>=0));
-buildPanel(document.getElementById('pd'),'DOWN · 세로',projects.map((p,i)=>p.dir==='v'?i:-1).filter(i=>i>=0));
-/* 회색 블록: 도형 + 호버 연결 */
-const SH=["<circle cx=\"50\" cy=\"50\" r=\"30\"/>","<polygon points=\"50,18 84,80 16,80\"/>","<rect x=\"24\" y=\"24\" width=\"52\" height=\"52\"/>","<path d=\"M40 15h20v25h25v20H60v25H40V60H15V40h25z\"/>","<polygon points=\"50,14 86,50 50,86 14,50\"/>","<path d=\"M15 75a35 35 0 0170 0z\"/>"];
+buildPanel(document.getElementById('pa'),'가로',projects.map((p,i)=>p.dir==='h'?i:-1).filter(i=>i>=0));
+buildPanel(document.getElementById('pd'),'세로',projects.map((p,i)=>p.dir==='v'?i:-1).filter(i=>i>=0));
+/* 배경 장식(피그마 Union 애셋, HTML에 이미 심어둔 img) + 호버 연결 */
 document.querySelectorAll('.gray').forEach((g,k)=>{
-  g.innerHTML=`<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">${SH[k]}</svg>`;
   let tm;
   g.addEventListener('mouseenter',()=>{show(grayMap[k]);clearTimeout(tm);tm=setTimeout(()=>g.classList.add('seen'),2000);});
   g.addEventListener('mouseleave',()=>clearTimeout(tm));
@@ -483,7 +512,13 @@ function reveal(){
     // 피그마 원본(node 75:365) 실측: 원 쪽은 원 반지름의 .42배로 좁고, 멀어질수록 원 반지름의 1.06배로 넓어짐.
     // 길이는 화면 밖까지 무한히 뻗는 게 아니라 원 반지름의 3.6배 정도의 유한한 길이.
     // 색도 원본처럼 원과 맞닿는 쪽이 진하고 불투명, 끝으로 갈수록 옅어지며 알파 0으로 사라짐(빛줄기 자체 그라데이션만으로 자연스럽게 원과 연결됨)
-    const len=r*3.6,farX=cx+ux*len,farY=cy+uy*len;
+    // 빛줄기 끝(끝의 좁은 tip)은 화면 안에서 잘린 채로 보이면 안 되고, 항상 화면 밖에 고정되어 있어야 함.
+    // 화면이 작아지면 r*3.6로는 화면 경계까지도 못 미칠 수 있어서, 현재 위치(cx,cy)에서 anchor 방향으로
+    // 실제 화면 경계까지 닿는 거리를 구해 그보다는 반드시 더 길게(경계를 넘어서게) 뻗도록 함
+    const txB=ux>0?(w-cx)/ux:(ux<0?(0-cx)/ux:Infinity);
+    const tyB=uy>0?(h-cy)/uy:(uy<0?(0-cy)/uy:Infinity);
+    const edgeLen=Math.max(0,Math.min(txB,tyB));
+    const len=Math.max(r*3.6,edgeLen*1.15),farX=cx+ux*len,farY=cy+uy*len;
     const nearHalf=r*0.96,farHalf=r*.42; // 원 쪽이 넓고 멀어질수록 좁아지도록(반대 방향으로 수정)
     ctx.save();
     ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;ctx.filter=`blur(${r*.05}px)`;
