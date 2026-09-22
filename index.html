@@ -345,9 +345,9 @@ function reveal(){
   // dir: 이 빛의 빔이 뻗어나가는 방향(도, 0=오른쪽 90=아래 180=왼쪽 270=위, 화면 기준)
   // hx,hy(하이라이트 오프셋)를 0으로 둬서 빛의 가장 밝은 지점이 항상 텍스트 슬롯의 정중앙(HOMES)과 정확히 겹치도록 함
   const BLOBS=[
-    {c:['#eeffb0','#8fdba0','#289e82'],hx:0,hy:0,dir:55, side:1,rr:764/2398*1.05},
-    {c:['#ffd9d2','#f28a86','#e0435f'],hx:0,hy:0,dir:125,side:-1,rr:764/2398*1.05},
-    {c:['#dcedf7','#7fa8d8','#33559f'],hx:0,hy:0,dir:270,side:1,rr:764/2398*1.05},
+    {c:['#eeffb0','#8fdba0','#289e82'],hx:0,hy:0,dir:55, side:1,rr:764/2398*1.05*1.18*1.2},
+    {c:['#ffd9d2','#f28a86','#e0435f'],hx:0,hy:0,dir:125,side:-1,rr:764/2398*1.05*1.18*1.2},
+    {c:['#dcedf7','#7fa8d8','#33559f'],hx:0,hy:0,dir:270,side:1,rr:764/2398*1.05*1.18*1.2},
   ];
   function hex2rgb(hex){const n=parseInt(hex.replace('#',''),16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
   function rgbStr({r,g,b}){return`rgb(${r},${g},${b})`;}
@@ -435,6 +435,13 @@ function reveal(){
     const rad=b.dir*Math.PI/180,ux=Math.cos(rad),uy=Math.sin(rad);
     const len=Math.hypot(w,h)*1.15; // 화면 대각선보다 길게 뻗어서 끝이 반드시 화면 밖으로 나가도록
     b.anchor={x:b.x+ux*len,y:b.y+uy*len};
+    // 화면 대각선(diag) 전체를 "움직일 수 있는 최대 거리"로 잡았던 게 틀렸음 — 중앙(b.x,b.y)에서 실제로 화면 경계에 닿을 때까지
+    // anchor 방향(ux,uy)으로 이동 가능한 거리는 그보다 훨씬 짧음(가로/세로 각각 중앙~가장자리 절반 거리 중 먼저 닿는 쪽).
+    // 레이-박스(ray-box) 교차로 정확한 최대 이동거리(maxReach)를 구해야 마우스를 화면 끝까지 움직였을 때 비율이 실제로 0 근처까지 내려감
+    const txB=ux>0?(w-b.x)/ux:(ux<0?(0-b.x)/ux:Infinity);
+    const tyB=uy>0?(h-b.y)/uy:(uy<0?(0-b.y)/uy:Infinity);
+    const maxReach=Math.min(txB,tyB);
+    b.anchorDist0=len;b.anchorMinD=len-maxReach;
     hh.textContent='빛을 마우스로 움직여서 제자리를 찾아주세요';
   }
   window.__lightSeqStart=()=>{if(seqIdx<0)setTimeout(spawnNext,900);};
@@ -477,7 +484,7 @@ function reveal(){
     // 길이는 화면 밖까지 무한히 뻗는 게 아니라 원 반지름의 3.6배 정도의 유한한 길이.
     // 색도 원본처럼 원과 맞닿는 쪽이 진하고 불투명, 끝으로 갈수록 옅어지며 알파 0으로 사라짐(빛줄기 자체 그라데이션만으로 자연스럽게 원과 연결됨)
     const len=r*3.6,farX=cx+ux*len,farY=cy+uy*len;
-    const nearHalf=r*1.06,farHalf=r*.42; // 원 쪽이 넓고 멀어질수록 좁아지도록(반대 방향으로 수정)
+    const nearHalf=r*0.96,farHalf=r*.42; // 원 쪽이 넓고 멀어질수록 좁아지도록(반대 방향으로 수정)
     ctx.save();
     ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;ctx.filter=`blur(${r*.05}px)`;
     const g=ctx.createLinearGradient(cx,cy,farX,farY);
@@ -553,8 +560,17 @@ function reveal(){
         }
       }
       if(alpha>.008&&r>.4){
-        // 피그마 원본 원(Ellipse 23) 실측: 가장자리 블러가 반지름의 약 10.6%(27.05/255.477)
-        ctx.globalCompositeOperation='lighter';ctx.filter=`blur(${r*.106}px)`;ctx.globalAlpha=alpha;
+        // 화면 밖에 고정된 빛줄기 끝(anchor)에 마우스(원)가 가까워질수록 블러가 약해져 또렷해지고,
+        // 멀어질수록(=원래 기본 느낌) 블러가 강해지도록 anchor까지의 거리 비율로 블러 세기를 계산
+        let blurK=.03;
+        if(b.anchor&&b.anchorDist0){
+          const dA=Math.hypot(b.anchor.x-cx,b.anchor.y-cy);
+          // 화면 안에서 실제로 움직일 수 있는 범위(anchorMinD~anchorDist0)만으로 비율을 잡아야 마우스를 움직이는 만큼 확실히 반응함
+          const ratio=Math.max(0,Math.min(1,(dA-b.anchorMinD)/(b.anchorDist0-b.anchorMinD))); // 0=anchor 쪽으로 최대한 다가감(거의 블러 없음), 1=가장 멀어짐(기존 느낌)
+          blurK=.0+.02*ratio*ratio; // 최대 블러를 .03으로 더 낮춰서, 가까워지면 거의 선명해지도록
+
+        }
+        ctx.globalCompositeOperation='lighter';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
         const g=ctx.createRadialGradient(cx+(b.hx||0)*r,cy+(b.hy||0)*r,0,cx,cy,r);
         g.addColorStop(0,cols[0]);g.addColorStop(.38,cols[1]);g.addColorStop(.68,cols[2]);g.addColorStop(.85,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
