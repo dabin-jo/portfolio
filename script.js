@@ -1,3 +1,8 @@
+/* 새로고침 시 브라우저가 "마지막으로 스크롤했던 위치"(예: 십자말풀이 섹션)를 기억했다가 페이지 로드 후 되돌리는
+   기본 동작(scroll restoration) 때문에, 로딩이 끝나고 우리가 scrollTo(0,0)으로 맨 위로 보정하는 순간
+   html{scroll-behavior:smooth} 때문에 그 되돌아온 지점에서 위로 스르륵 스크롤되는 게 화면에 그대로 보였던 것.
+   브라우저가 아예 위치를 기억/복원하지 않도록 끔 */
+if('scrollRestoration' in history)history.scrollRestoration='manual';
 /* ===== 십자말풀이 스테이지 스케일 =====
    피그마 원본이 1920x1080 캔버스라서, 그 비율(16:9) 그대로 축소/확대해 항상 100vh 안에 꽉 차게 맞춤 */
 (()=>{
@@ -129,19 +134,17 @@ document.querySelectorAll('.gray').forEach((g,k)=>{
 
 /* ===== 스크롤: 빛이 내려와 십자말풀이로 ===== */
 // 조명이 작아지며 잔상 남기고 사라지는 연출은 히어로 쪽(.hero-wrap)에서 처리되고,
-// 여기 beam-track은 그 이후 검정→흰색 배경 전환 + "SELECTED WORKS" 문구만 짧게 담당
+// 여기 beam-track은 그 이후 검정→회색 배경 전환만 짧게 담당(문구 없음, 스크롤 거리도 짧게 줄임)
 const track=document.getElementById('track'),stage=document.getElementById('stage');
-const stxt=document.getElementById('stxt');
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const smoothstep=t=>t*t*(3-2*t); // 구간 전체를 부드러운 S자 곡선으로 보간해서, 색이 휙 바뀌지 않고 눈에 편하게 서서히 바뀌도록 함
 function onScroll(){
   const r=track.getBoundingClientRect(), total=track.offsetHeight-innerHeight;
   const p=clamp(-r.top/total,0,1);
   const vh=innerHeight;
-  // 배경: 검정 → 옅은 회색(십자말풀이 섹션과 같은 톤 #f5f5f5)
-  const g=Math.round(245*clamp((p-.35)/.55,0,1));
+  // 배경: 검정 → 옅은 회색(십자말풀이 섹션과 같은 톤 #f5f5f5). 구간 전체(0~1)를 다 써서 서서히 전환
+  const g=Math.round(245*smoothstep(p));
   stage.style.background=`rgb(${g},${g},${g})`;
-  stxt.style.opacity=clamp(1-p*2,0,1);
-  stxt.style.color='#fff';
   // 말풀이 등장 (스크롤 마지막 구간 이후 진입)
   const cw=document.getElementById('cw').getBoundingClientRect();
   if(cw.top<vh*.95&&!started){started=true;reveal();}
@@ -414,7 +417,7 @@ function reveal(){
 (()=>{
   const intro=document.getElementById('intro'),sw=document.getElementById('sw'),pct=document.getElementById('pct'),bar=document.getElementById('bar');
   let busy=false;
-  scrollTo(0,0);
+  scrollTo({top:0,left:0,behavior:'instant'}); // behavior:'instant'로 scroll-behavior:smooth를 무시하고 즉시 이동(안 그러면 스르륵 스크롤되는 게 보임)
   sw.addEventListener('click',()=>{
     if(busy)return;busy=true;
     sw.classList.add('on');intro.classList.add('go');
@@ -423,7 +426,7 @@ function reveal(){
       const p=Math.min(1,(now-t0)/D),e=1-Math.pow(1-p,2);
       const n=Math.round(e*100);pct.textContent='LOADING '+n+'%';bar.style.width=n+'%';
       if(p<1)return requestAnimationFrame(step);
-      setTimeout(()=>{intro.classList.add('done');scrollTo(0,0);window.__lightSeqStart&&window.__lightSeqStart();},350); // 로딩이 끝나고 잠시 후부터 스포트라이트가 하나씩 순서대로 켜짐
+      setTimeout(()=>{intro.classList.add('done');scrollTo({top:0,left:0,behavior:'instant'});window.__lightSeqStart&&window.__lightSeqStart();},350); // 로딩이 끝나고 잠시 후부터 스포트라이트가 하나씩 순서대로 켜짐
     })(t0);
   });
 })();
