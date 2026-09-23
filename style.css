@@ -119,7 +119,10 @@ body.lock{overflow:hidden}
 .g2{left:469px;top:505px;width:272px;height:452px}
 .g3{left:1267px;top:632px;width:135px;height:380px}
 .g4{left:1008px;top:705px;width:250px;height:304px}
-.g5{left:1750.56px;top:339px;width:354.56px;height:308.02px;transform:rotate(180deg) scaleY(-1)}
+/* 피그마 원본 좌표(left:1750.56px)는 1920px 캔버스 경계를 훌쩍 넘어가는 위치라 화면이 넓을 때 붕 떠 보였음.
+   세로 위치(top)는 원본 그대로 두고, 캔버스 안에 온전히 들어오도록 가로만 당겨서 원래 있어야 할 자리(빨간 원으로 표시된,
+   AI/상관관계 절 옆·ZIPMATE 칸 위쪽)에 오도록 수정 */
+.g5{left:1385px;top:339px;width:354.56px;height:308.02px;transform:rotate(180deg) scaleY(-1)}
 .g6{left:228px;top:62px;width:340px;height:412px}
 
 /* 절 패널 (가로 / 세로) — 피그마 실측 위치/폭 그대로 */
