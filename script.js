@@ -414,11 +414,11 @@ function reveal(){
           const ratio=Math.max(0,Math.min(1,(dA-b.anchorMinD)/(b.anchorDist0-b.anchorMinD))); // 0=anchor 쪽으로 최대한 다가감(거의 블러 없음), 1=가장 멀어짐(기존 느낌)
           blurK=.0+.02*ratio*ratio; // 최대 블러를 .03으로 더 낮춰서, 가까워지면 거의 선명해지도록
         }
-        // 'lighter'(가산혼합)는 배경이 밝은 색으로 바뀐 뒤에는 순식간에 흰색으로 포화돼버림. 그렇다고 완전히 다른
-        // 방식(source-over)으로 바꾸면 떨어지기 시작하는 순간 렌더링 방식 자체가 바뀌어서 크기/밝기가 툭 튀어 보임.
-        // → 'screen'은 두 원이 겹치면 여전히 은은하게 밝아지는 "스포트라이트가 겹치는" 느낌은 살리면서도,
-        // lighter처럼 값을 단순히 더하지 않고 위로 갈수록 완만해져서 순식간에 흰색으로 날아가진 않음
-        ctx.globalCompositeOperation=fading?'screen':'lighter';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
+        // 피그마 원본은 원에 mix-blend-mode:lighten을 씀(채널별 최댓값만 취함) — 'lighter'(단순 가산)처럼
+        // 값을 더해서 금방 흰색으로 뜨지 않고, 훨씬 채도 있게 색이 유지됨. 'screen'도 lighter보다는 완만하지만
+        // lighten만큼 원색을 그대로 지키지는 못해서, 평소(active/placed 등)엔 lighten을 쓰고
+        // 배경이 밝아진 뒤 떨어질 때만(fading) 여전히 screen을 씀(순간적으로 밝아지는 느낌이 필요해서)
+        ctx.globalCompositeOperation=fading?'screen':'lighten';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
         const g=ctx.createRadialGradient(cx+(b.hx||0)*r,cy+(b.hy||0)*r,0,cx,cy,r);
         g.addColorStop(0,cols[0]);g.addColorStop(.38,cols[1]);g.addColorStop(.68,cols[2]);g.addColorStop(.85,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
