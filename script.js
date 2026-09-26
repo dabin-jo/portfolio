@@ -169,13 +169,16 @@ function reveal(){
   const hh=document.getElementById('hh');
   hh.textContent='';
   // dir: 이 빛의 빔이 뻗어나가는 방향(도, 0=오른쪽 90=아래 180=왼쪽 270=위, 화면 기준)
-  // hx,hy(하이라이트 오프셋)를 0으로 둬서 빛의 가장 밝은 지점이 항상 텍스트 슬롯의 정중앙(HOMES)과 정확히 겹치도록 함
+  // 하이라이트(가장 밝은 지점)는 원 중심이 아니라, 빛줄기가 뻗어나가는 방향(anchor 쪽) 가장자리에 있어야 함
+  // — 빛이 anchor 방향에서 흘러들어와 원에 부딪히는 지점이 가장 밝아 보이는 게 자연스러움.
+  // 그래서 hx,hy를 dir 방향의 단위벡터로 계산해서 넣음(고정값이 아니라 각 빛의 실제 방향을 그대로 씀)
   // 색은 피그마 원본(node 95:122)의 실제 그라데이션(중심=진한 색 → 가장자리=옅은 색)을 그대로 가져옴.
   // 예전엔 중심을 옅은 색으로 뒀었는데(하얗게 빛나는 느낌), 이번 레퍼런스는 반대로 중심이 진하고 가장자리로 갈수록 옅어짐.
+  const hiOff=(deg,mag=.55)=>{const rad=deg*Math.PI/180;return{hx:Math.cos(rad)*mag,hy:Math.sin(rad)*mag};};
   const BLOBS=[
-    {c:['#E5FF7F','#CEFEA2','#B7FEC6'],hx:0,hy:0,dir:55, side:1,rr:764/2398*1.05*1.18*1.2}, // 녹색(Ellipse 24)
-    {c:['#F46171','#F99E94','#FEDCB7'],hx:0,hy:0,dir:125,side:-1,rr:764/2398*1.05*1.18*1.2}, // 핑크(Ellipse 23)
-    {c:['#054ABB','#6A9DD1','#CFF0E7'],hx:0,hy:0,dir:270,side:1,rr:764/2398*1.05*1.18*1.2}, // 파랑(Ellipse 22)
+    {c:['#E5FF7F','#CEFEA2','#B7FEC6'],...hiOff(55), dir:55, side:1,rr:764/2398*1.05*1.18*1.2}, // 녹색(Ellipse 24)
+    {c:['#F46171','#F99E94','#FEDCB7'],...hiOff(125),dir:125,side:-1,rr:764/2398*1.05*1.18*1.2}, // 핑크(Ellipse 23)
+    {c:['#054ABB','#6A9DD1','#CFF0E7'],...hiOff(270),dir:270,side:1,rr:764/2398*1.05*1.18*1.2}, // 파랑(Ellipse 22)
   ];
   function hex2rgb(hex){const n=parseInt(hex.replace('#',''),16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
   function rgbStr({r,g,b}){return`rgb(${r},${g},${b})`;}
