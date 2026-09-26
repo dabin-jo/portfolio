@@ -171,14 +171,14 @@ function reveal(){
   // dir: 이 빛의 빔이 뻗어나가는 방향(도, 0=오른쪽 90=아래 180=왼쪽 270=위, 화면 기준)
   // 하이라이트(가장 밝은 지점)는 원 중심이 아니라, 빛줄기가 뻗어나가는 방향(anchor 쪽) 가장자리에 있어야 함
   // — 빛이 anchor 방향에서 흘러들어와 원에 부딪히는 지점이 가장 밝아 보이는 게 자연스러움.
-  // 그래서 hx,hy를 dir 방향의 단위벡터로 계산해서 넣음(고정값이 아니라 각 빛의 실제 방향을 그대로 씀)
+  // dir로 고정하지 않고(원이 좌우로 움직이면 anchor 방향도 살짝 달라짐) 매 프레임 실제 anchor 방향을 다시 계산함
+  // (아래 draw()에서 b.hiMag만큼 실시간으로 offset을 구함) → hiMag만 여기 정의
   // 색은 피그마 원본(node 95:122)의 실제 그라데이션(중심=진한 색 → 가장자리=옅은 색)을 그대로 가져옴.
   // 예전엔 중심을 옅은 색으로 뒀었는데(하얗게 빛나는 느낌), 이번 레퍼런스는 반대로 중심이 진하고 가장자리로 갈수록 옅어짐.
-  const hiOff=(deg,mag=.55)=>{const rad=deg*Math.PI/180;return{hx:Math.cos(rad)*mag,hy:Math.sin(rad)*mag};};
   const BLOBS=[
-    {c:['#E5FF7F','#CEFEA2','#B7FEC6'],...hiOff(55), dir:55, side:1,rr:764/2398*1.05*1.18*1.2}, // 녹색(Ellipse 24)
-    {c:['#F46171','#F99E94','#FEDCB7'],...hiOff(125),dir:125,side:-1,rr:764/2398*1.05*1.18*1.2}, // 핑크(Ellipse 23)
-    {c:['#054ABB','#6A9DD1','#CFF0E7'],...hiOff(270),dir:270,side:1,rr:764/2398*1.05*1.18*1.2}, // 파랑(Ellipse 22)
+    {c:['#E5FF7F','#CEFEA2','#B7FEC6'],hiMag:.55,dir:55, side:1,rr:764/2398*1.05*1.18*1.2}, // 녹색(Ellipse 24)
+    {c:['#F46171','#F99E94','#FEDCB7'],hiMag:.55,dir:125,side:-1,rr:764/2398*1.05*1.18*1.2}, // 핑크(Ellipse 23)
+    {c:['#054ABB','#6A9DD1','#CFF0E7'],hiMag:.55,dir:270,side:1,rr:764/2398*1.05*1.18*1.2}, // 파랑(Ellipse 22)
   ];
   function hex2rgb(hex){const n=parseInt(hex.replace('#',''),16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
   function rgbStr({r,g,b}){return`rgb(${r},${g},${b})`;}
@@ -422,7 +422,14 @@ function reveal(){
         // lighten만큼 원색을 그대로 지키지는 못해서, 평소(active/placed 등)엔 lighten을 쓰고
         // 배경이 밝아진 뒤 떨어질 때만(fading) 여전히 screen을 씀(순간적으로 밝아지는 느낌이 필요해서)
         ctx.globalCompositeOperation=fading?'screen':'lighten';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
-        const g=ctx.createRadialGradient(cx+(b.hx||0)*r,cy+(b.hy||0)*r,0,cx,cy,r);
+        // 하이라이트 방향도 빛줄기(drawBeam)와 똑같이, 지금 위치(cx,cy)에서 anchor를 향하는 실제 방향으로 매 프레임 다시 계산
+        // — 원이 좌우로 움직이면 anchor 방향도 따라 살짝 돌아가므로, 하이라이트도 그만큼 같이 따라 돌아감
+        let hx=0,hy=0;
+        if(b.anchor){
+          const hdx=b.anchor.x-cx,hdy=b.anchor.y-cy,hd=Math.hypot(hdx,hdy)||1;
+          hx=(hdx/hd)*b.hiMag;hy=(hdy/hd)*b.hiMag;
+        }
+        const g=ctx.createRadialGradient(cx+hx*r,cy+hy*r,0,cx,cy,r);
         g.addColorStop(0,cols[0]);g.addColorStop(.38,cols[1]);g.addColorStop(.68,cols[2]);g.addColorStop(.85,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
       }
