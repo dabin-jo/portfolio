@@ -142,9 +142,10 @@ function onScroll(){
   const r=track.getBoundingClientRect(), total=track.offsetHeight-innerHeight;
   const p=clamp(-r.top/total,0,1);
   const vh=innerHeight;
-  // 배경: 검정 → 옅은 회색(십자말풀이 섹션과 같은 톤 #f5f5f5). 구간 전체(0~1)를 다 써서 서서히 전환
-  const g=Math.round(245*smoothstep(p));
-  stage.style.background=`rgb(${g},${g},${g})`;
+  // 배경: 검정(#080809) → 옅은 회색(십자말풀이 섹션과 같은 톤 #f5f5f5). 구간 전체(0~1)를 다 써서 서서히 전환
+  const bp=smoothstep(p);
+  const rC=Math.round(8+(245-8)*bp),gC=Math.round(8+(245-8)*bp),bC=Math.round(9+(245-9)*bp);
+  stage.style.background=`rgb(${rC},${gC},${bC})`;
   // 말풀이 등장 (스크롤 마지막 구간 이후 진입)
   const cw=document.getElementById('cw').getBoundingClientRect();
   if(cw.top<vh*.95&&!started){started=true;reveal();}
@@ -201,7 +202,10 @@ function reveal(){
     const mid=anyToRgb(cols[1]),SPAN=.14,K=40; // 원래 K=10이라 잔상이 듬성듬성한 개별 원으로 겹쳐 보였음 →
     // 촘촘하게 더 잘게 쪼개고(그만큼 한 조각당 알파는 비례해서 낮춰) 하나의 매끈한 번짐처럼 보이게 함
     const ALPHA_K=.4*(10/K);
-    ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';ctx.lineJoin='round';
+    // 원 본체와 같은 이유로 'screen' 사용(밝게 겹치는 느낌은 유지하되 순식간에 흰색으로 날아가지 않도록).
+    // 원 본체는 blur 필터가 걸려서 실제 반지름보다 더 크고 부드럽게 퍼져 보이는데, 꼬리는 blur가 없어서
+    // 같은 반지름이어도 더 작고 또렷하게 보였음 → 꼬리에도 원 본체와 같은 정도의 blur를 걸어 크기가 맞도록 함
+    ctx.save();ctx.globalCompositeOperation='screen';ctx.lineCap='round';ctx.lineJoin='round';ctx.filter=`blur(${r*.03}px)`;
     let prev=null;
     // k=0(머리, 지금 위치)은 바로 아래에서 그릴 원 본체와 겹쳐 하얗게 뜨므로 제외하고 그 뒤쪽 잔상만 그림
     for(let k=K;k>=1;k--){
@@ -347,7 +351,7 @@ function reveal(){
     BLOBS.forEach((b,i)=>{
       if(b.phase==='pending')return;
       let r=b.rr*sc;
-      let alpha=1,cols=b.c,cx,cy;
+      let alpha=1,cols=b.c,cx,cy,fading=false;
       if(b.phase==='active'){
         b.x+=(b.tx-b.x)*.16;b.y+=(b.ty-b.y)*.16; // 무겁지 않게, 손 따라 비교적 빠르게
         b.x=clampX(b.x);b.y=clampY(b.y);
@@ -379,6 +383,7 @@ function reveal(){
         cols=b.c.map((c,k)=>mix(c,b.gray[k],t));
         alpha=1-.35*t;
       }else{ // revealed: 마지막에 전부 다시 컬러로, 이후 스크롤하면 아래로 떨어지며 사라짐
+        fading=true; // 정지해 있을 때든 떨어지는 중이든 동일하게 취급(아래에서 렌더 방식을 안 바꿔야 떨어지기 시작하는 순간 크기/밝기가 툭 튀지 않음)
         cx=HOMES[i].x;cy=HOMES[i].y;
         const t=Math.min(1,(now-allColorAt)/UNMUTE_MS);
         cols=b.c.map((c,k)=>mix(b.gray[k],c,t));
@@ -388,6 +393,7 @@ function reveal(){
           drawFallTrail(i,HOMES[i],r,alpha,fq,cols);
           const pos=fallPos(HOMES[i].x,HOMES[i].y,i,fq);
           cx=pos.x;cy=pos.y;
+          // 머리(원 본체)와 꼬리(잔상)가 같은 fallShrink 공식을 써야 크기가 서로 어긋나지 않음(둘 다 같이 작아짐)
           r=r*fallShrink(fq);
           alpha=alpha*(1-fq);
         }
@@ -396,14 +402,21 @@ function reveal(){
         // 화면 밖에 고정된 빛줄기 끝(anchor)에 마우스(원)가 가까워질수록 블러가 약해져 또렷해지고,
         // 멀어질수록(=원래 기본 느낌) 블러가 강해지도록 anchor까지의 거리 비율로 블러 세기를 계산
         let blurK=.03;
-        if(b.anchor&&b.anchorDist0){
+        // anchor 거리 기반으로 블러를 바꾸는 건 마우스로 직접 움직이는 동안(active/settling)에만 의미가 있음.
+        // placed/revealed(떨어지는 중 포함)에서도 그대로 적용하면, 세 원마다 anchor 방향이 달라서(55°/125°/270°)
+        // 한가운데로 모여 떨어지는 동안 원마다 anchor까지 거리가 서로 달라져 블러(=겉보기 크기)가 제각각이 되어 버림
+        // → 그 상태에서는 고정된 기본 블러(.03)만 쓰게 해서 세 원이 항상 똑같은 크기로 보이게 함
+        if((b.phase==='active'||b.phase==='settling')&&b.anchor&&b.anchorDist0){
           const dA=Math.hypot(b.anchor.x-cx,b.anchor.y-cy);
           // 화면 안에서 실제로 움직일 수 있는 범위(anchorMinD~anchorDist0)만으로 비율을 잡아야 마우스를 움직이는 만큼 확실히 반응함
           const ratio=Math.max(0,Math.min(1,(dA-b.anchorMinD)/(b.anchorDist0-b.anchorMinD))); // 0=anchor 쪽으로 최대한 다가감(거의 블러 없음), 1=가장 멀어짐(기존 느낌)
           blurK=.0+.02*ratio*ratio; // 최대 블러를 .03으로 더 낮춰서, 가까워지면 거의 선명해지도록
-
         }
-        ctx.globalCompositeOperation='lighter';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
+        // 'lighter'(가산혼합)는 배경이 밝은 색으로 바뀐 뒤에는 순식간에 흰색으로 포화돼버림. 그렇다고 완전히 다른
+        // 방식(source-over)으로 바꾸면 떨어지기 시작하는 순간 렌더링 방식 자체가 바뀌어서 크기/밝기가 툭 튀어 보임.
+        // → 'screen'은 두 원이 겹치면 여전히 은은하게 밝아지는 "스포트라이트가 겹치는" 느낌은 살리면서도,
+        // lighter처럼 값을 단순히 더하지 않고 위로 갈수록 완만해져서 순식간에 흰색으로 날아가진 않음
+        ctx.globalCompositeOperation=fading?'screen':'lighter';ctx.filter=`blur(${r*blurK}px)`;ctx.globalAlpha=alpha;
         const g=ctx.createRadialGradient(cx+(b.hx||0)*r,cy+(b.hy||0)*r,0,cx,cy,r);
         g.addColorStop(0,cols[0]);g.addColorStop(.38,cols[1]);g.addColorStop(.68,cols[2]);g.addColorStop(.85,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();

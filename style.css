@@ -1,11 +1,11 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:#000;color:#fff;font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;overflow-x:hidden}
+body{background:#080809;color:#fff;font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;overflow-x:hidden}
 
 
 /* ---------- 0. INTRO (스위치) ---------- */
 body.lock{overflow:hidden}
-#intro{position:fixed;inset:0;background:#000;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s ease,visibility 1s}
+#intro{position:fixed;inset:0;background:#080809;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s ease,visibility 1s}
 #intro.done{opacity:0;visibility:hidden}
 .sw{--w:clamp(180px,16.25vw,312px);--h:calc(var(--w)*.4647);--k:calc(var(--w)*.388);
   position:relative;width:var(--w);height:var(--h);border:0;padding:0;cursor:pointer;background:transparent;-webkit-tap-highlight-color:transparent}
@@ -31,7 +31,7 @@ body.lock{overflow:hidden}
    퍼즐이 끝난 뒤 스크롤할 때 화면이 그대로 붙어있는 채로 조명이 작아지며 잔상 남기고 사라지는
    연출이 이어지도록 함(별도 섹션에서 새로 시작하는 게 아니라 "같은" 조명이 계속됨) */
 .hero-wrap{position:relative;height:calc(100vh + 65vh)}
-.hero{position:sticky;top:0;height:100vh;background:#000;overflow:hidden;cursor:crosshair}
+.hero{position:sticky;top:0;height:100vh;background:#080809;overflow:hidden;cursor:crosshair}
 .cols{position:relative;min-height:100vh;display:grid;grid-template-columns:1.2fr .9fr 1.1fr;gap:3vw;padding:6vh 3vw 9vh}
 .col{display:flex;flex-direction:column;justify-content:space-between;gap:4vh}
 .col .grp{display:flex;flex-direction:column;gap:4vh}
@@ -73,7 +73,7 @@ body.lock{overflow:hidden}
 /* 조명이 작아지며 떨어지는 연출은 이제 히어로 쪽(.hero-wrap)에서 끝나고, 여기서는 검정→회색 배경 전환만 짧게 담당.
    예전엔 130vh나 스크롤해야 지나가서 너무 길게 느껴졌고, "SELECTED WORKS" 문구도 굳이 필요 없어 뺐음 */
 .beam-track{position:relative;height:115vh}
-.stage{position:sticky;top:0;height:100vh;overflow:hidden;background:#000}
+.stage{position:sticky;top:0;height:100vh;overflow:hidden;background:#080809}
 
 /* ---------- 3. CROSSWORD ---------- */
 /* 피그마 원본(node 75:308)이 1920x1080 캔버스 그대로 그려져 있어서, 그 실측 px 좌표를 그대로 쓰는
